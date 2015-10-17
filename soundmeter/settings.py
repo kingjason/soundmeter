@@ -30,4 +30,4 @@ FRAMES_PER_BUFFER = items.get('frames_per_buffer') or 2048
 FORMAT = items.get('format') or pyaudio.paInt16
 CHANNELS = items.get('channels') or 2
 RATE = items.get('rate') or 44100
-AUDIO_SEGMENT_LENGTH = items.get('audio_segment_length') or 0.5
+AUDIO_SEGMENT_LENGTH = items.get('audio_segment_length') or 0.1

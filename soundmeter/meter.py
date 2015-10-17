@@ -4,6 +4,7 @@ import pyaudio
 import pydub
 import wave
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -80,6 +81,8 @@ class Meter(object):
         self._timer = None
         self._data = {}
         self._setup_logging()
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect(("127.0.0.1", 3332))
 
     def record(self):
         """Record PyAudio stream into StringIO output"""
@@ -133,7 +136,31 @@ class Meter(object):
 
     def meter(self, rms):
         if not self._graceful:
-            sys.stdout.write('\r%10d  ' % rms)
+            percent = (float(rms)/float(self._data['max'])*100)
+            string_val = "=" * int(percent/1.5) + " " * int((100-percent)/1.5)
+            digits = map(int, str(int(percent)))
+            self.send_command(320) #1
+            self.send_command(331) #/
+            for x in str(int(percent/2)):
+                self.send_command(int(x)+319)
+            self.send_command(332) #@
+            self.send_command(320) #1
+            self.send_command(319) #0
+            self.send_command(319) #0
+            self.send_command(337) #ENTER
+            self.send_command(335) #CLEAR
+
+            for x in str(int(percent/2)+1):
+                self.send_command(int(x)+319)
+            self.send_command(331) #/
+            self.send_command(320) #1
+            self.send_command(319) #0
+            self.send_command(319) #0
+            self.send_command(332) #@
+            self.send_command(319) #0
+            self.send_command(337) #ENTER
+            self.send_command(335) #CLEAR
+            sys.stdout.write('\r%s  ' % string_val)
             sys.stdout.flush()
             if self.log:
                 self.logging.info(rms)
@@ -251,6 +278,9 @@ class Meter(object):
             self._data['min'] = rms
             self._data['max'] = rms
             self._data['avg'] = rms
+
+    def send_command(self, message):
+        self.s.send("FSOC"+str(message)+"255")
 
     def verbose_info(self, msg, log=True):
         if self.verbose:
